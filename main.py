@@ -6,6 +6,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
 
+from project_utils.visualisation import visualise
+
+
 def load_data(path: str) -> pd.DataFrame:
     return pd.read_csv(path)
 
@@ -52,9 +55,10 @@ def main():
     df = load_data("data/domy.csv")
 
     #print(df.columns.tolist()) ###
-
     print("Preprocessing data...")
     df = preprocess_data(df)
+
+    visualise(df, "SalePrice", 5)
 
     print("Splitting data...")
     X_train, X_test, y_train, y_test = split_data(df)

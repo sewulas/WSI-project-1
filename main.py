@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
 
-from project_utils.visualisation import visualise
+from project_utils.visualisation import visualise, plot_predictions, plot_residuals, plot_feature_importance
 
 
 def load_data(path: str) -> pd.DataFrame:
@@ -68,6 +68,14 @@ def main():
 
     print("Evaluating model...")
     evaluate_model(model, X_test, y_test)
+
+    print("Visualising model results...")
+
+    plot_predictions(model, X_test, y_test)
+    plot_residuals(model, X_test, y_test)
+
+    feature_names = df.drop("SalePrice", axis=1).columns
+    plot_feature_importance(model, feature_names)
 
     print("Done!")
 

@@ -5,7 +5,16 @@ from models.model import train_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
+
 from project_utils.visualisation import plot_predictions, plot_residuals, plot_feature_importance
+from project_utils.preprocessing_classification import preprocess_classification
+from project_utils.visualisation_classification import (
+    plot_class_distribution,
+    plot_feature_by_class,
+    plot_pca,
+    plot_top_correlations,
+    plot_top_features, plot_2d_features
+)
 
 def load_data(path: str) -> pd.DataFrame:
     return pd.read_csv(path)
@@ -50,17 +59,47 @@ def evaluate_model(models_dict, X_test, y_test):
         print(f"Wynik R^2: {r2:.4f}") # współczynnik determinacji (0-1) gdzie im bliżej 1 tym model dokładniejszy
 
 def main():
-    df = load_data("data/domy.csv")
-    df = preprocess_data(df)
-    X_train, X_test, y_train, y_test = split_data(df)
-    model = train_model(X_train, y_train)
-    evaluate_model(model, X_test, y_test)
-    
-    # WIZUALIZACJA
-    plot_predictions(model, X_test, y_test)
-    plot_residuals(model, X_test, y_test)
-    feature_names = df.drop("SalePrice", axis=1).columns
-    plot_feature_importance(model, feature_names)
+    # df = load_data("data/domy.csv")
+    # df = preprocess_data(df)
+    # X_train, X_test, y_train, y_test = split_data(df)
+    # model = train_model(X_train, y_train)
+    # evaluate_model(model, X_test, y_test)
+    #
+    # # WIZUALIZACJA
+    # plot_predictions(model, X_test, y_test)
+    # plot_residuals(model, X_test, y_test)
+    # feature_names = df.drop("SalePrice", axis=1).columns
+    # plot_feature_importance(model, feature_names)
+
+
+    # KLASYFIKACJA - ORTODONCJA
+    print("\nLoading classification data...")
+    df_clf = load_data("data/ortodoncja.csv")
+
+    print("Preprocessing classification data...")
+    df_clf = preprocess_classification(df_clf)
+
+    target_clf = "growth direction"
+
+    print("Visualising classification data...")
+
+    # Rozkład klas
+    plot_class_distribution(df_clf, target_clf)
+
+    # PCA
+    plot_pca(df_clf, target_clf)
+
+    # Korelacje
+    top_features = plot_top_correlations(df_clf, target_clf, top_n=5)
+
+    # Boxploty najważniejszych(?) cech
+    plot_top_features(df_clf, target_clf, top_features)
+
+    plot_2d_features(df_clf, "12_SN/MP", "12_ANB", "growth direction")
+
+    plot_2d_features(df_clf, "delta_SN/MP", "delta_ANB", target_clf)
+    plot_2d_features(df_clf, "12_SN/MP", "delta_SN/MP", target_clf)
+    plot_2d_features(df_clf, "12_SN/MP", "9_SN/MP", target_clf)
 
 if __name__ == "__main__":
     main()

@@ -5,6 +5,9 @@ from sklearn.metrics import accuracy_score, classification_report
 
 from project_utils.preprocessing_classification import preprocess_classification
 from models.model import train_classification_model
+from project_utils.visualisation_classification import plot_class_distribution, plot_pca, plot_top_correlations, \
+    plot_top_features, run_classification_visualisation, run_classification_results
+
 
 def load_data(path: str) -> pd.DataFrame:
     return pd.read_csv(path)
@@ -44,6 +47,13 @@ def main():
     X_train, X_test, y_train, y_test = split_data(df)
     models = train_classification_model(X_train, y_train)
     evaluate_model(models, X_test, y_test)
+
+    print("Visualising classification data...")
+    run_classification_visualisation(df)
+
+    feature_names = df.drop("growth direction", axis=1).columns
+
+    run_classification_results(models, X_test, y_test, feature_names)
 
 if __name__ == "__main__":
     main()

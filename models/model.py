@@ -1,46 +1,47 @@
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import LinearRegression, Ridge
 
-def train_model(X_train, y_train):
+def train_classification_model(X_train, y_train):
     trained_models = {}
     
-    # Regresja liniowa
-    # Algorytm analizuje cechy domów (X_train) oraz ceny (y_train)
-    # Oblicza współczynniki dla każdej cechy, tak aby poprowadzić idealną krzywą przez te dane
-    lr = LinearRegression()
+    # 1. Regresja logistyczna (klasyfikacja)
+    # W przeciwieństwie do regresji, która próbowała wyznaczyć prostą
+    # przechodzącą jak najbliżej wszystkich punktów, klasyfikacja
+    # oddziela od siebie różne grupy pacjentów (klasyfikuje na grupy).
+    # max_iter = 1000, aby dokładniejszy podział (domyślnie 100) 
+    lr = LogisticRegression(max_iter=1000, random_state=42)
     lr.fit(X_train, y_train)
-    trained_models['Linear Regression'] = lr
+    trained_models['Logistic Regression'] = lr
     
-    # Regresja grzebietowa z GridSearch
-    # Regresja liniowa ma wbudowany błąd tj. tylko i wyłącznie minimalizuje błąd między ceną realną a obliczaną
-    # Gdy cech jest dużo, to algorytm zaczyna przypisywać duże wagi do mało znaczących cech
-    # Algorytm taki będzie źle wytrenowany (mała stabilność - dla innych danych nie będzie tak dobrze estymował)
-    # Ridge wprowadza kary za zbyt duże wagi (dajemy kilka opcji kar, od 0.1 mała do 100.0 bardzo duża,
-    # tak aby algorytm sam dobrał najlepszy parametr)
-    ridge = Ridge()
-    ridge_params = {'alpha': [0.1, 1.0, 10.0, 100.0]}
+    # 2. Drzewo decyzyjne z Grid Search
+    # Analogicznie jak w regresji
+    # max_depth to liczba zapytań - testujemy 3, 5 i 10 pytań z rzędu,
+    # w ostateczności None - tak długo, aż w każdej gałęzi zostanie 1 pacjent.
+    # Min_samples_split - ilu minimum pacjentów musi wpaść do danej gałęzi, aby
+    # opłacało się dalej dzielić tę grupę (dalsze zagłębienia)
+    # Scoring_accuracy - w przeciwieństwie do regresji nie interesuje nas błąd średni
+    # tylko dokładność tj. dany procent postawionych diagnoz - Grid Search testuje
+    # wszystkie kombinacje drzew i wybierze to z najwiękzą liczbą celnych trafień.
+    dt = DecisionTreeClassifier(random_state=42)
+    dt_params = {'max_depth': [3, 5, 10, None], 'min_samples_split': [2, 5, 10]}
+    dt_grid = GridSearchCV(estimator=dt, param_grid=dt_params, cv=3, scoring='accuracy')
+    dt_grid.fit(X_train, y_train)
+    trained_models['Decision Tree'] = dt_grid.best_estimator_
     
-    # cv = 3 oznacza kroswalidację
-    # Dla każdej alphy (0.1, 1.0, 10.0, 100.0) algorytm dzieli dane na 3 części. Uczy się na dwóch, a ocenia na trzeciej.
-    # neg_mean_squared_error dlatego, że biblioteka sklearn chce maksymalizować wynik, a my chcemy minimalny błąd stąd negacja
-    ridge_grid = GridSearchCV(estimator=ridge, param_grid=ridge_params, cv=3, scoring='neg_mean_squared_error')
-    ridge_grid.fit(X_train, y_train)
-    trained_models['Ridge Regression'] = ridge_grid.best_estimator_
-    
-    # Lasy losowe z GridSearch
-    # Ustawiamy seed - powtarzalność wyników
-    # Analogicznie jak dla ridge nie wiemy jakie są najlepsze parametry
-    # Algorytm sam wybierze (od 50 do 100 drzew, a ich głębokość od 10 do 20)
-    rf = RandomForestRegressor(random_state=42)
+    # 3. Lasy losowe
+    # Tworzymy 50 lub 100 małych drzew decyzyjnych (tych powyżej)
+    # Końcowa przyneleżność pacjenta do grupy na zasadzie większości
+    # (dany pacjent przynależy do kategorii x <=> kategoria x wystąpiła
+    # najczęściej wśród wszystkich drzew decyzyjnych).
+    # cv = 3 kroswalidacja
+    rf = RandomForestClassifier(random_state=42)
     rf_params = {
         'n_estimators': [50, 100],
-        'max_depth': [10, 20]
+        'max_depth': [5, 10, 20]
     }
-    
-    # GridSearchCV analogiczny jak przy Ridge
-    # n_jobs=-1 parametr optymalizacyjny - drzewa są niezależne i każde z nich może być budowane równolegle, wielowątkowo
-    rf_grid = GridSearchCV(estimator=rf, param_grid=rf_params, cv=3, scoring='neg_mean_squared_error', n_jobs=-1)
+    rf_grid = GridSearchCV(estimator=rf, param_grid=rf_params, cv=3, scoring='accuracy', n_jobs=-1)
     rf_grid.fit(X_train, y_train)
     trained_models['Random Forest'] = rf_grid.best_estimator_
     
